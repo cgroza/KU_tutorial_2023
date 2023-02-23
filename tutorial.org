@@ -9,11 +9,19 @@
   - ~bcftools~ to work with VCF files, call variants
   - ~samtools~ to work with BAM files
 
+** Long steps in the pipeline
+Some steps take a long time that is prohibitive during a workshop. Therefore,
+long running commands are written to use a small subsample of data that allows
+you to run the command very fast and understand the tool parameters and output.
+Later steps then use prepared intermediate files that reside in ~/data/~ to
+provide the full results.
+
 * The Human Pangenome Reference (HPRC)
 The Human Pangenome Reference Consortium released the first draft human
 pangenome reference built from 94 genetically diverse assemblies. This reference
 uses a graph data structure to represent the known genetic variation at any
-given locus.
+given locus. Every HPRC genome is a path through the graph and additional genomes
+are represented as paths that pass through a combination of HPRC genomes.
 
 We will open the HPRC graph and inspect some subregions of chromosome 22 with a
 tool called Bandage. First, we already extracted chromosome 22 from the whole
@@ -21,23 +29,37 @@ genome graph in the file called ~hprc-chrom22.odgi~. We can use ~odgi~
 (https://github.com/pangenome/odgi) to ask for specific subgraphs of the human
 pangenome. For example, this extracts the subgraph of the DGCR6 gene:
 #+BEGIN_SRC sh :exports code
-  odgi extract -i hprc-chrom22.odgi -c 10 -E -r GRCh38.chr22:18906028-18912088 -o - | odgi view -g -i - > DGCR6.gfa
+  odgi extract -d 0 -i /data/hprc-chrom22.odgi -c 10 -E -r GRCh38.chr22:18906028-18912088 -o - | odgi view -g -i - > DGCR6.gfa
 #+END_SRC
-If you download the file ~DGCR6.gfa~ to your own computer and load it in Bandage
-(File -> Load graph), you should see a long, mostly linear structure. However,
-you should also see small bubbles along this gene, representing SNVs and indels.
-In Bandage, use the find node field in the top right of the Bandage window to
-search for node 270054. You should see a polymorphic region containing a 33 bp
-indel, and 3 consecutive SNVs within a very short region.
-[[file:images/indel_SNVs.png]]
+
+Download the file ~DGCR6.gfa~ to your own computer by running this on your local UNIX computer.
+You may ignore ~-i your_key~ if you have a username and password:
+#+BEGIN_SRC sh :exports code
+  scp -i your_key your_username@52.69.106.213:DGCR6.gfa .
+#+END_SRC
+
+Windows users will have to install PuTTY and use ~pscp~:
+
+#+BEGIN_SRC sh :exports code
+pscp -scp your_username@52.69.106.213:DGCR6.gfa .
+#+END_SRC
+
+Once you have the file, load it in Bandage (File -> Load graph). You should see
+a long, mostly linear structure. However, you should also see small bubbles
+along this gene, representing SNVs and indels. In Bandage, use the find node
+field in the top right of the Bandage window to search for node 270054. You
+should see a polymorphic region containing a 33 bp indel, and 3 consecutive SNVs
+within a very short region. [[file:images/indel_SNVs.png]]
 
 
 Let's find a larger structural variant, in this case a 6 kbp LINE1 insertion:
 #+BEGIN_SRC sh :exports code
-  odgi extract -i hprc-chrom22.odgi -c 100 -E -r GRCh38.chr22:26101249-26121249 -o - | odgi view -g -i - > L1.gfa
+  odgi extract -d 0 -i /data/hprc-chrom22.odgi -c 100 -E -r GRCh38.chr22:26101249-26121249 -o - | odgi view -g -i - > L1.gfa
 #+END_SRC
-Again, download and open the file ~L1.gfa~ in Bandage and find node 438987. You
-should see something similar to this:
+Again, download and open the file ~L1.gfa~ (just like before, but replace
+~DGCR6.gfa~ with ~L1.gfa~) in Bandage and find node 438987. You should see
+something similar to this:
+
 [[file:images/L1.png]]
 
 If you zoom in, you should see a small bubble on the L1, representing a SNV
@@ -46,21 +68,41 @@ within the LINE1 insertion as a bubble within a bubble:
 [[file:images/nested_SNV.png]]
 
 ** Mapping whole genome sequencing datasets to the Human Pangenome Reference
+
 We may use the human pangenome reference similarly to how we use GRCh38, to
 align existing short read data. Let's align a whole genome sequencing dataset of
 NA12878 to chr22. We can do this using the graph aligner ~vg giraffe~
 (https://github.com/vgteam/vg), and the appropriate index files which can be
-downloaded at https://github.com/human-pangenomics/hpp_pangenome_resources:
+downloaded at https://github.com/human-pangenomics/hpp_pangenome_resources.
+Here, we align a small sample of reads from chromosome 22 to a graph.
 #+BEGIN_SRC sh :exports code
-  vg giraffe -i -f NA12878.chr22.fq.gz -Z hprc-chrom22.giraffe.gbz -m hprc-chrom22.min -d hprc-chrom22.dist -p > NA12878.chr22.gam
+  vg giraffe -i -f /data/NA12878.chr22.sample.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -p > NA12878.chr22.sample.gam
+#+END_SRC
+
+Or if you have time, align the full data for chromosome 22:
+#+begin_quote
+This step may take a longer time than available. Feel free to interrupt it and proceed to the next step.
+#+end_quote
+#+BEGIN_SRC sh :exports code
+  vg giraffe -i -f /data/NA12878.chr22.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -p > NA12878.chr22.gam
 #+END_SRC
 
 At the end of this operation you should see a message similar to this:
 
 #+begin_quote
 Mapped 10044682 reads across 40 threads in 72.2703 seconds with 1.02009 additional single-threaded seconds.
+Achieved 1469.49 reads per CPU-second (including output)
 #+end_quote
 As you can see, ~vg giraffe~ is very fast!
+
+** Graph alignments are stored in the GAM format
+The GAM format is analogous to the BAM format.
+We can view an example graph alignment with the command:
+#+BEGIN_SRC sh :exports code
+vg view -aj /data/NA12878.chr22.gam | head -n1
+#+END_SRC
+As you can see, graph alignments refer to nodes instead of chromosomes and the
+alignments describe the path in the pangenome on which the read lies.
 
 ** Count the read depth on each allele
 The aligned whole genome sequencing reads can now be used to genotype variation
@@ -69,22 +111,25 @@ for genotyping structural variation, which is not accessible to most short read
 variant callers. To genotype alleles that are present in the graph, we first
 need to know how many reads align to each allele. We can count this quickly with
 the following command:
+
 #+BEGIN_SRC sh :exports code
-  vg pack -x hprc-chrom22.giraffe.gbz -g NA12878.chr22.gam -o NA12878.chr22.pack
+  vg pack -x /data/hprc-chrom22.giraffe.gbz -g /data/NA12878.chr22.sample.gam -o NA12878.chr22.pack
 #+END_SRC
+This creates a ~pack~ table that describes how many reads align to each node in the pangenome.
 
 ** Call variants based on read depth on alleles
 We are now ready to call variants using ~vg call~:
 #+BEGIN_SRC sh :exports code
-  vg call -r hprc-chrom22.snarls -s NA12878 -k NA12878.chr22.pack hprc-chrom22.giraffe.gbz > NA12878.chr22.hprc.vcf
+  vg call -r /data/hprc-chrom22.snarls -s NA12878 -k /data/NA12878.chr22.pack /data/hprc-chrom22.giraffe.gbz > NA12878.chr22.hprc.vcf
 #+END_SRC
-If you wish to output the genotype of reference alleles, pass the ~-a~ parameter
-to ~vg call~.
+The output is a VCF file that lists the alleles where NA12878 differs from the GRCh38 path/reference.
+If you wish to output the genotype of all the alleles, including those that are the same as GRCh38, pass the ~-a~ parameter
+to ~vg call~. This is useful when working with many samples.
 
 ** Check the number of non-reference variants found
 Then, we can quickly summarize the findings with:
 #+BEGIN_SRC sh :exports code
-  bcftools stats NA12878.chr22.hprc.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
+  bcftools stats /data/NA12878.chr22.hprc.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
 #+END_SRC
 
 The output should reproduce the data in this table:
@@ -105,20 +150,45 @@ many rare SNVs and indels that are not present in the pangenome reference and
 thus were not called. To recover these, we may still leverage the pangenome
 reference to remove reference bias and improve our precision and sensitivity. We
 do so by using these HPRC-corrected alignments with a traditional caller such as
-~bcftools~, which can be done by projecting the pangenome alignments onto the
-GRCh38 path:
+~bcftools~, work on reads that where aligned to the traditional GRCh38 reference.
+
+** Projecting alignments from the pangenome to a linear genome
+Since GRCh38 is part of the pangenome, it's relationship to the HPRC genomes is
+described by the graph. Therefore, any alignment that lies on a bubble can be
+rewritten as an alignment relative to GRCh38, where the bubble is expressed as
+an edit. For example, an alignment that matches 23 bp on GRCh38, 64 bp on HG002
+and 44 bp on GRCh38 will be projected to GRCh38 as ~23M64I44M~. Note that there
+is nothing special about GRCh38, we may project onto any genome in graph
+(specified with ~-p~). Project with the following command:
 
 #+BEGIN_SRC sh :exports code
-  vg surject -p GRCh38.chr22 -t 8 -b -x hprc-chrom22.giraffe.gbz NA12878.chr22.gam | samtools sort > NA12878.chr22.hprc.bam
+  vg surject -p GRCh38.chr22 -t 2 -b -x /data/hprc-chrom22.giraffe.gbz /data/NA12878.chr22.sample.gam | samtools sort > NA12878.chr22.hprc.sample.bam
 #+END_SRC
 
 The output file ~NA12878.chr22.hprc.bam~ is now a regular BAM file that contains
-alignments projected onto GRCh38, and can be accepted by tools such as ~DeepVariant~
-or ~bcftools~. Let's call SNVs and indels with ~bcftools~ on HPRC-corrected alignments:
+alignments projected onto GRCh38. If you check a record in the BAM file, you will see
+the path named GRCh38.chr22 in the chromosome field:
 #+BEGIN_SRC sh :exports code
-  bcftools mpileup --threads 8 -Ou -f GRCh38.chr22.fa NA12878.chr22.hprc.bam | bcftools call --threads 8 -mv -Ov -o NA12878.chr22.bcftools.vcf
+  samtools view NA12878.chr22.hprc.sample.bam | head -n1
 #+END_SRC
-This step may take 10 to 15 minutes.
+
+This file can be accepted by tools such as ~DeepVariant~ or ~bcftools~. Let's
+call SNVs and indels with ~bcftools~ on HPRC-corrected alignments:
+
+#+BEGIN_SRC sh :exports code
+  bcftools mpileup -Ou -f /data/GRCh38.chr22.fa /data/NA12878.chr22.hprc.sample.bam | bcftools call -mv -Ov -o NA12878.chr22.bcftools.vcf
+#+END_SRC
+
+Let's summarize the new results just like before:
+#+BEGIN_SRC sh :exports code
+bcftools stats /data/NA12878.chr22.bcftools.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
+#+END_SRC
+
+Now compare with variants called with ~bwa mem~:
+
+#+BEGIN_SRC sh :exports code
+bcftools stats /data/NA12878.chr22.bwamem.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
+#+END_SRC
 
 Indeed we find more SNVs and indels that are unique to NA12878 when we use HPRC-corrected alignments.
 |-----------------------------------------+----------------+---------+-------|
