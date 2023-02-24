@@ -184,7 +184,7 @@ described by the graph. Therefore, any alignment that lies on a bubble can be
 rewritten as an alignment relative to GRCh38, where the bubble is expressed as
 an edit. For example, an alignment that matches 23 bp on GRCh38, 64 bp on HG002
 and 44 bp on GRCh38 will be projected to GRCh38 as ~23M64I44M~. Note that there
-is nothing special about GRCh38, we may project onto any genome in graph
+is nothing special about GRCh38, we may project onto any genome in the graph
 (specified with ~-p~). Project with the following command:
 
 #+BEGIN_SRC sh :exports code

@@ -436,8 +436,8 @@ a bubble can be rewritten as an alignment relative to GRCh38, where the
 bubble is expressed as an edit. For example, an alignment that matches
 23 bp on GRCh38, 64 bp on HG002 and 44 bp on GRCh38 will be projected to
 GRCh38 as <code>23M64I44M</code>. Note that there is nothing special
-about GRCh38, we may project onto any genome in graph (specified with
-<code>-p</code>). Project with the following command:</p>
+about GRCh38, we may project onto any genome in the graph (specified
+with <code>-p</code>). Project with the following command:</p>
 <div class="sourceCode" id="cb10" data-org-language="sh"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vg</span> surject <span class="at">-p</span> GRCh38.chr22 <span class="at">-t</span> 2 <span class="at">-b</span> <span class="at">-x</span> /data/hprc-chrom22.giraffe.gbz /data/NA12878.chr22.sample.gam <span class="kw">|</span> <span class="ex">samtools</span> sort <span class="op">&gt;</span> NA12878.chr22.hprc.sample.bam</span></code></pre></div>
 <p>The output file <code>NA12878.chr22.hprc.bam</code> is now a regular
 BAM file that contains alignments projected onto GRCh38.</p>
