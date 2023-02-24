@@ -109,7 +109,7 @@ The GAM is a binary format is analogous to the BAM format. It is space efficient
 but not human readable. GAF is a text file format that is more similar to the
 SAM file format. You can view a record of the GAF format using:
 #+BEGIN_SRC sh :exports code
-head -n1 NA12878.chr22.sample.gaf
+head -n1 /data/NA12878.chr22.sample.gaf
 #+END_SRC
 There are many similarities with the BAM/SAM format. For example, there are
 fields for the read name and its mate, and a mapping quality field. The ~path~
