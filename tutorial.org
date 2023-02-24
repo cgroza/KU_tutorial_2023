@@ -31,6 +31,14 @@ pangenome. For example, this extracts the subgraph of the DGCR6 gene:
 #+BEGIN_SRC sh :exports code
   odgi extract -d 0 -i /data/hprc-chrom22.odgi -c 10 -E -r GRCh38.chr22:18906028-18912088 -o - | odgi view -g -i - > DGCR6.gfa
 #+END_SRC
+Key parameters:
+ + ~-i~ input graph
+ + ~-r~ region interval along GRCh38.chr22 path to extract (path:start-end)
+ + ~-E~ extract the subgraph to include nodes and paths from other genomes that
+   touch on GRCh38.chr22. Without this argument, the results will be a simple
+   linear graph without variants
+ + ~-c~ number of surrounding nodes to extract around the specified region. This
+   gives the extracted subgraph a bit more context
 
 Download the file ~DGCR6.gfa~ to your own computer by running this on your local UNIX computer.
 You may ignore ~-i your_key~ if you have a username and password:
@@ -49,8 +57,9 @@ a long, mostly linear structure. However, you should also see small bubbles
 along this gene, representing SNVs and indels. In Bandage, use the find node
 field in the top right of the Bandage window to search for node 270054. You
 should see a polymorphic region containing a 33 bp indel, and 3 consecutive SNVs
-within a very short region. [[file:images/indel_SNVs.png]]
+within a very short region.
 
+[[file:images/indel_SNVs.png]]
 
 Let's find a larger structural variant, in this case a 6 kbp LINE1 insertion:
 #+BEGIN_SRC sh :exports code
@@ -65,10 +74,10 @@ something similar to this:
 If you zoom in, you should see a small bubble on the L1, representing a SNV
 nested within the L1 insertion. Note how the graph represents the nested SNP
 within the LINE1 insertion as a bubble within a bubble:
+
 [[file:images/nested_SNV.png]]
 
 ** Mapping whole genome sequencing datasets to the Human Pangenome Reference
-
 We may use the human pangenome reference similarly to how we use GRCh38, to
 align existing short read data. Let's align a whole genome sequencing dataset of
 NA12878 to chr22. We can do this using the graph aligner ~vg giraffe~
@@ -79,16 +88,15 @@ Here, we align a small sample of reads from chromosome 22 to a graph.
   vg giraffe -i -f /data/NA12878.chr22.sample.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -p > NA12878.chr22.sample.gam
 #+END_SRC
 
-Or if you have time, align the full data for chromosome 22:
-#+begin_quote
-This step may take a longer time than available. Feel free to interrupt it and proceed to the next step.
-#+end_quote
-#+BEGIN_SRC sh :exports code
-  vg giraffe -i -f /data/NA12878.chr22.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -p > NA12878.chr22.gam
-#+END_SRC
+Key parameters:
++ ~-i~ input reads are an interleaved paired-end FASTQ file
++ ~-f~ input FASTQ file
++ ~-Z~ input ~giraffe~ graph (created with ~vg autoindex~)
++ ~-m~ minimizer index, a table that lists where the position of k-mers are in the graph
++ ~-d~ distance index, a table that lets ~giraffe~ quickly calculate the minimum distance in ~bp~ between any two nodes in the graph
++ ~-p~ show progress
 
 At the end of this operation you should see a message similar to this:
-
 #+begin_quote
 Mapped 10044682 reads across 40 threads in 72.2703 seconds with 1.02009 additional single-threaded seconds.
 Achieved 1469.49 reads per CPU-second (including output)
@@ -97,12 +105,20 @@ As you can see, ~vg giraffe~ is very fast!
 
 ** Graph alignments are stored in the GAM format
 The GAM format is analogous to the BAM format.
-We can view an example graph alignment with the command:
+We can view an example graph alignment as a ~json~ record with the command:
 #+BEGIN_SRC sh :exports code
-vg view -aj /data/NA12878.chr22.gam | head -n1
+vg view -aj /data/NA12878.chr22.gam | head -n1 | jq . | less
 #+END_SRC
-As you can see, graph alignments refer to nodes instead of chromosomes and the
-alignments describe the path in the pangenome on which the read lies.
+#+begin_quote
+Use the up and down arrow keys to navigate, press ~q~ to exit.
+#+end_quote
+Use the up and down arrow keys to navigate, press ~q~ to exit.
+There are many similarities with the BAM format. For example, there are fields
+for the read name and its mate, and a mapping quality field. The ~path~ field is
+analogous to the chromosome field but is more complex. As you can see, it is an
+enumeration of nodes instead of a chromosome and the alignments describe the
+path in the pangenome on which the read lies. The edit fields are analogous to
+the CIGAR string in BAMs.
 
 ** Count the read depth on each allele
 The aligned whole genome sequencing reads can now be used to genotype variation
@@ -116,6 +132,10 @@ the following command:
   vg pack -x /data/hprc-chrom22.giraffe.gbz -g /data/NA12878.chr22.sample.gam -o NA12878.chr22.pack
 #+END_SRC
 This creates a ~pack~ table that describes how many reads align to each node in the pangenome.
+Key parameters:
++ ~-x~ input ~giraffe~ graph
++ ~-g~ input graph alignments from ~giraffe~
++ ~-o~ output node read depth table
 
 ** Call variants based on read depth on alleles
 We are now ready to call variants using ~vg call~:
@@ -123,6 +143,13 @@ We are now ready to call variants using ~vg call~:
   vg call -r /data/hprc-chrom22.snarls -s NA12878 -k /data/NA12878.chr22.pack /data/hprc-chrom22.giraffe.gbz > NA12878.chr22.hprc.vcf
 #+END_SRC
 The output is a VCF file that lists the alleles where NA12878 differs from the GRCh38 path/reference.
+
+Key parameters
++ ~-r~ index that lets ~vg~ quickly find the bubbles in the graph
++ ~-s~ sample name to be used in VCF
++ ~-k~ input read depth table from previous step
++ input ~giraffe~ graph
+
 If you wish to output the genotype of all the alleles, including those that are the same as GRCh38, pass the ~-a~ parameter
 to ~vg call~. This is useful when working with many samples.
 
@@ -166,7 +193,16 @@ is nothing special about GRCh38, we may project onto any genome in graph
 #+END_SRC
 
 The output file ~NA12878.chr22.hprc.bam~ is now a regular BAM file that contains
-alignments projected onto GRCh38. If you check a record in the BAM file, you will see
+alignments projected onto GRCh38.
+
+Key parameters:
++ ~-p~ path onto which to project the alignments. Can be any genome that is part of the graph
++ ~-t~ number of threads to use, more is faster
++ ~-b~ output BAM
++ ~-x~ input ~giraffe~ graph
++ input GAM file to surject to BAM
+
+If you check a record in the BAM file, you will see
 the path named GRCh38.chr22 in the chromosome field:
 #+BEGIN_SRC sh :exports code
   samtools view NA12878.chr22.hprc.sample.bam | head -n1
@@ -195,9 +231,7 @@ Indeed we find more SNVs and indels that are unique to NA12878 when we use HPRC-
 | Variants                                | HPRC-corrected | bwa mem |  Gain |
 |-----------------------------------------+----------------+---------+-------|
 | number  of  SNPs                        |          65447 |   67146 | -1699 |
-| number  of  MNPs                        |              0 |       0 |     0 |
 | number  of  indels                      |          14172 |   10672 |  3500 |
-| number  of  others                      |            263 |       0 |   263 |
 | number  of  multiallelic  sites         |            415 |     349 |    66 |
 | number  of  multiallelic     SNP  sites |             39 |      46 |    -7 |
 |-----------------------------------------+----------------+---------+-------|
@@ -208,3 +242,15 @@ Indeed, calling variants with HPRC-corrected alignments removes 1699
 SNVs (which could be false positives) and gains 3500 indels, which are the most
 likely to be affected by reference bias.
 
+** BONUS
+The VCF files produced by ~vg~ call also indicate which nodes represent the
+variant.
+#+BEGIN_SRC sh :exports code
+bcftools view -H /data/NA12878.chr22.hprc.vcf | less
+#+END_SRC
+The ~ALT~ field indicates the source node, the node from which the graph
+branches out and the sink, the node to which the graph merges again. The source
+and sink nodes delimit the boundaries of a polymorphic locus. The ~AT~ field
+enumerates the exact path of that variant. As an exercise, pick a variant,
+subset the graph in this region with ~odgi~, download and visualize it with
+Bandage by finding the source node of a variant.
