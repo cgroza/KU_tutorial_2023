@@ -85,16 +85,17 @@ NA12878 to chr22. We can do this using the graph aligner ~vg giraffe~
 downloaded at https://github.com/human-pangenomics/hpp_pangenome_resources.
 Here, we align a small sample of reads from chromosome 22 to a graph.
 #+BEGIN_SRC sh :exports code
-  vg giraffe -i -f /data/NA12878.chr22.sample.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -p > NA12878.chr22.sample.gam
+  vg giraffe -p -i -f /data/NA12878.chr22.sample.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -o gam  > NA12878.chr22.sample.gam
 #+END_SRC
 
 Key parameters:
++ ~-p~ show progress
 + ~-i~ input reads are an interleaved paired-end FASTQ file
 + ~-f~ input FASTQ file
 + ~-Z~ input ~giraffe~ graph (created with ~vg autoindex~)
 + ~-m~ minimizer index, a table that lists where the position of k-mers are in the graph
 + ~-d~ distance index, a table that lets ~giraffe~ quickly calculate the minimum distance in ~bp~ between any two nodes in the graph
-+ ~-p~ show progress
++ ~-o gaf~ data format for alignments (can be GAM, GAF or others)
 
 At the end of this operation you should see a message similar to this:
 #+begin_quote
@@ -103,22 +104,20 @@ Achieved 1469.49 reads per CPU-second (including output)
 #+end_quote
 As you can see, ~vg giraffe~ is very fast!
 
-** Graph alignments are stored in the GAM format
-The GAM format is analogous to the BAM format.
-We can view an example graph alignment as a ~json~ record with the command:
+** Graph alignments are stored in the GAM or GAF formats
+The GAM is a binary format is analogous to the BAM format. It is space efficient
+but not human readable. GAF is a text file format that is more similar to the
+SAM file format. You can view a record of the GAF format using:
 #+BEGIN_SRC sh :exports code
-vg view -aj /data/NA12878.chr22.gam | head -n1 | jq . | less
+head -n1 NA12878.chr22.sample.gaf
 #+END_SRC
-#+begin_quote
-Use the up and down arrow keys to navigate, press ~q~ to exit.
-#+end_quote
-Use the up and down arrow keys to navigate, press ~q~ to exit.
-There are many similarities with the BAM format. For example, there are fields
-for the read name and its mate, and a mapping quality field. The ~path~ field is
-analogous to the chromosome field but is more complex. As you can see, it is an
-enumeration of nodes instead of a chromosome and the alignments describe the
-path in the pangenome on which the read lies. The edit fields are analogous to
-the CIGAR string in BAMs.
+There are many similarities with the BAM/SAM format. For example, there are
+fields for the read name and its mate, and a mapping quality field. The ~path~
+field is analogous to the chromosome field but is more complex. As you can see,
+it is an enumeration of nodes instead of a chromosome and the alignments
+describe the path in the pangenome on which the read lies. More on the GAF
+format:
+https://github.com/lh3/gfatools/blob/master/doc/rGFA.md#the-graph-alignment-format-gaf
 
 ** Count the read depth on each allele
 The aligned whole genome sequencing reads can now be used to genotype variation

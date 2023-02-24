@@ -310,9 +310,10 @@ aligner <code>vg giraffe</code> (<a href="https://github.com/vgteam/vg">https://
 and the appropriate index files which can be downloaded at <a href="https://github.com/human-pangenomics/hpp_pangenome_resources">https://github.com/human-pangenomics/hpp_pangenome_resources</a>.
 Here, we align a small sample of reads from chromosome 22 to a
 graph.</p>
-<div class="sourceCode" id="cb5" data-org-language="sh"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vg</span> giraffe <span class="at">-i</span> <span class="at">-f</span> /data/NA12878.chr22.sample.fq.gz <span class="at">-Z</span> /data/hprc-chrom22.giraffe.gbz <span class="at">-m</span> /data/hprc-chrom22.min <span class="at">-d</span> /data/hprc-chrom22.dist <span class="at">-p</span> <span class="op">&gt;</span> NA12878.chr22.sample.gam</span></code></pre></div>
+<div class="sourceCode" id="cb5" data-org-language="sh"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vg</span> giraffe <span class="at">-p</span> <span class="at">-i</span> <span class="at">-f</span> /data/NA12878.chr22.sample.fq.gz <span class="at">-Z</span> /data/hprc-chrom22.giraffe.gbz <span class="at">-m</span> /data/hprc-chrom22.min <span class="at">-d</span> /data/hprc-chrom22.dist <span class="at">-o</span> gam  <span class="op">&gt;</span> NA12878.chr22.sample.gam</span></code></pre></div>
 <p>Key parameters:</p>
 <ul>
+<li><code>-p</code> show progress</li>
 <li><code>-i</code> input reads are an interleaved paired-end FASTQ
 file</li>
 <li><code>-f</code> input FASTQ file</li>
@@ -323,7 +324,8 @@ position of k-mers are in the graph</li>
 <li><code>-d</code> distance index, a table that lets
 <code>giraffe</code> quickly calculate the minimum distance in
 <code>bp</code> between any two nodes in the graph</li>
-<li><code>-p</code> show progress</li>
+<li><code>-o gaf</code> data format for alignments (can be GAM, GAF or
+others)</li>
 </ul>
 <p>At the end of this operation you should see a message similar to
 this:</p>
@@ -333,23 +335,19 @@ this:</p>
 CPU-second (including output)</p>
 </blockquote>
 <p>As you can see, <code>vg giraffe</code> is very fast!</p>
-<h2 id="graph-alignments-are-stored-in-the-gam-format">Graph alignments
-are stored in the GAM format</h2>
-<p>The GAM format is analogous to the BAM format. We can view an example
-graph alignment as a <code>json</code> record with the command:</p>
-<div class="sourceCode" id="cb6" data-org-language="sh"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vg</span> view <span class="at">-aj</span> /data/NA12878.chr22.gam <span class="kw">|</span> <span class="fu">head</span> <span class="at">-n1</span> <span class="kw">|</span> <span class="ex">jq</span> . <span class="kw">|</span> <span class="fu">less</span></span></code></pre></div>
-<blockquote>
-<p>Use the up and down arrow keys to navigate, press <code>q</code> to
-exit.</p>
-</blockquote>
-<p>Use the up and down arrow keys to navigate, press <code>q</code> to
-exit. There are many similarities with the BAM format. For example,
+<h2 id="graph-alignments-are-stored-in-the-gam-or-gaf-formats">Graph
+alignments are stored in the GAM or GAF formats</h2>
+<p>The GAM is a binary format is analogous to the BAM format. It is
+space efficient but not human readable. GAF is a text file format that
+is more similar to the SAM file format. You can view a record of the GAF
+format using:</p>
+<div class="sourceCode" id="cb6" data-org-language="sh"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span> <span class="at">-n1</span> NA12878.chr22.sample.gaf</span></code></pre></div>
+<p>There are many similarities with the BAM/SAM format. For example,
 there are fields for the read name and its mate, and a mapping quality
 field. The <code>path</code> field is analogous to the chromosome field
 but is more complex. As you can see, it is an enumeration of nodes
 instead of a chromosome and the alignments describe the path in the
-pangenome on which the read lies. The edit fields are analogous to the
-CIGAR string in BAMs.</p>
+pangenome on which the read lies. More on the GAF format: <a href="https://github.com/lh3/gfatools/blob/master/doc/rGFA.md#the-graph-alignment-format-gaf">https://github.com/lh3/gfatools/blob/master/doc/rGFA.md#the-graph-alignment-format-gaf</a></p>
 <h2 id="count-the-read-depth-on-each-allele">Count the read depth on
 each allele</h2>
 <p>The aligned whole genome sequencing reads can now be used to genotype
