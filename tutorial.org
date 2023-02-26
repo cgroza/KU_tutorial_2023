@@ -175,8 +175,8 @@ Overall, there are 28,636 insertions and 142,417 SNVs in the graph, of which
 many rare SNVs and indels that are not present in the pangenome reference and
 thus were not called. To recover these, we may still leverage the pangenome
 reference to remove reference bias and improve our precision and sensitivity. We
-do so by using these HPRC-corrected alignments with a traditional caller such as
-~bcftools~, work on reads that where aligned to the traditional GRCh38 reference.
+do so by using these HPRC-corrected alignments with traditional callers such as
+~bcftools~, which work on reads aligned to the linear GRCh38 reference.
 
 ** Projecting alignments from the pangenome to a linear genome
 Since GRCh38 is part of the pangenome, it's relationship to the HPRC genomes is
