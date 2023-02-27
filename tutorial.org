@@ -64,10 +64,10 @@ Windows users will have to install PuTTY and use ~pscp~:
 pscp -scp your_username@52.69.106.213:DGCR6.gfa .
 #+END_SRC
 
-Once you have the file, load it in Bandage (File -> Load graph). You should see
-a long, mostly linear structure. However, you should also see small bubbles
-along this gene, representing SNVs and indels. In Bandage, use the find node
-field in the top right of the Bandage window to search for node 270054. You
+Once you have the file, load it in Bandage (File -> Load graph, Draw graph). You
+should see a long, mostly linear structure. However, you should also see small
+bubbles along this gene, representing SNVs and indels. In Bandage, use the find
+node field in the top right of the Bandage window to search for node 270054. You
 should see a polymorphic region containing a 33 bp indel, and 3 consecutive SNVs
 within a very short region.
 
@@ -125,8 +125,9 @@ As you can see, ~vg giraffe~ is very fast!
 The GAM is a binary format is analogous to the BAM format. It is space efficient
 but not human readable. GAF is a text file format that is more similar to the
 SAM file format. While various tools prefer GAF or GAM, ~vg giraffe~ allows
-users to choosing using the ~-o gaf/gam~ command line parameter. You can view a
-record of the GAF format using:
+users to choosing using the ~-o gaf/gam~ command line parameter. You can also
+convert between GAM and GAF using ~vg convert~. You can view a record of the GAF
+format using:
 
 *Command 6*
 #+BEGIN_SRC sh :exports code
@@ -152,6 +153,9 @@ the following command:
 #+BEGIN_SRC sh :exports code
   vg pack -x /data/hprc-chrom22.giraffe.gbz -g /data/NA12878.chr22.sample.gam -o NA12878.chr22.pack
 #+END_SRC
+
+#+RESULTS:
+
 This creates a ~pack~ table that describes how many reads align to each node in the pangenome.
 Key parameters:
 + ~-x~ input ~giraffe~ graph
@@ -273,6 +277,15 @@ At the same time, we can compare to variants called from reads aligned with ~bwa
 Indeed, calling variants with HPRC-corrected alignments removes 1699
 SNVs (which could be false positives) and gains 3500 indels, which are the most
 likely to be affected by reference bias.
+
+Here we see a SNV that ~bcftools~ called with HPRC but missed with GRCh38
+alignments in an IGV coverage track:
+
+[[file:images/IGV_shot.png]]
+
+First, we notice that the read depth on this SNV is slightly higher in HPRC than GRCh38.
+As shown by the insert tables, HPRC enabled the recovery of 15 reads that support the
+~C~ SNV, while GRCh38 recovered only 6.
 
 ** BONUS
 The VCF files produced by ~vg~ call also indicate which nodes represent the
