@@ -20,14 +20,22 @@ provide the full results.
 The Human Pangenome Reference Consortium released the first draft human
 pangenome reference built from 94 genetically diverse assemblies. This reference
 uses a graph data structure to represent the known genetic variation at any
-given locus. Every HPRC genome is a path through the graph and additional genomes
-are represented as paths that pass through a combination of HPRC genomes.
+given locus. Every HPRC genome is a path through the graph and additional
+genomes are represented as paths that pass through a combination of HPRC
+genomes.
+
+Genome graphs can be built in various way. The HPRC graph was built from a
+multiple genome alignment involving 94 assemblies, but graphs can also be built
+from VCF files. Run ~vg autoindex~ to see some options for building graph
+genomes.
 
 We will open the HPRC graph and inspect some subregions of chromosome 22 with a
 tool called Bandage. First, we already extracted chromosome 22 from the whole
 genome graph in the file called ~hprc-chrom22.odgi~. We can use ~odgi~
 (https://github.com/pangenome/odgi) to ask for specific subgraphs of the human
 pangenome. For example, this extracts the subgraph of the DGCR6 gene:
+
+*Command 1*
 #+BEGIN_SRC sh :exports code
   odgi extract -d 0 -i /data/hprc-chrom22.odgi -c 10 -E -r GRCh38.chr22:18906028-18912088 -o - | odgi view -g -i - > DGCR6.gfa
 #+END_SRC
@@ -42,12 +50,16 @@ Key parameters:
 
 Download the file ~DGCR6.gfa~ to your own computer by running this on your local UNIX computer.
 You may ignore ~-i your_key~ if you have a username and password:
+
+*Command 2*
 #+BEGIN_SRC sh :exports code
   scp -i your_key your_username@52.69.106.213:DGCR6.gfa .
 #+END_SRC
 
 Windows users will have to install PuTTY and use ~pscp~:
 
+
+*Command 3*
 #+BEGIN_SRC sh :exports code
 pscp -scp your_username@52.69.106.213:DGCR6.gfa .
 #+END_SRC
@@ -62,6 +74,9 @@ within a very short region.
 [[file:images/indel_SNVs.png]]
 
 Let's find a larger structural variant, in this case a 6 kbp LINE1 insertion:
+
+
+*Command 4*
 #+BEGIN_SRC sh :exports code
   odgi extract -d 0 -i /data/hprc-chrom22.odgi -c 100 -E -r GRCh38.chr22:26101249-26121249 -o - | odgi view -g -i - > L1.gfa
 #+END_SRC
@@ -84,6 +99,8 @@ NA12878 to chr22. We can do this using the graph aligner ~vg giraffe~
 (https://github.com/vgteam/vg), and the appropriate index files which can be
 downloaded at https://github.com/human-pangenomics/hpp_pangenome_resources.
 Here, we align a small sample of reads from chromosome 22 to a graph.
+
+*Command 5*
 #+BEGIN_SRC sh :exports code
   vg giraffe -p -i -f /data/NA12878.chr22.sample.fq.gz -Z /data/hprc-chrom22.giraffe.gbz -m /data/hprc-chrom22.min -d /data/hprc-chrom22.dist -o gam  > NA12878.chr22.sample.gam
 #+END_SRC
@@ -107,7 +124,11 @@ As you can see, ~vg giraffe~ is very fast!
 ** Graph alignments are stored in the GAM or GAF formats
 The GAM is a binary format is analogous to the BAM format. It is space efficient
 but not human readable. GAF is a text file format that is more similar to the
-SAM file format. You can view a record of the GAF format using:
+SAM file format. While various tools prefer GAF or GAM, ~vg giraffe~ allows
+users to choosing using the ~-o gaf/gam~ command line parameter. You can view a
+record of the GAF format using:
+
+*Command 6*
 #+BEGIN_SRC sh :exports code
 head -n1 /data/NA12878.chr22.sample.gaf
 #+END_SRC
@@ -127,6 +148,7 @@ variant callers. To genotype alleles that are present in the graph, we first
 need to know how many reads align to each allele. We can count this quickly with
 the following command:
 
+*Command 7*
 #+BEGIN_SRC sh :exports code
   vg pack -x /data/hprc-chrom22.giraffe.gbz -g /data/NA12878.chr22.sample.gam -o NA12878.chr22.pack
 #+END_SRC
@@ -138,6 +160,8 @@ Key parameters:
 
 ** Call variants based on read depth on alleles
 We are now ready to call variants using ~vg call~:
+
+*Command 8*
 #+BEGIN_SRC sh :exports code
   vg call -r /data/hprc-chrom22.snarls -s NA12878 -k /data/NA12878.chr22.pack /data/hprc-chrom22.giraffe.gbz > NA12878.chr22.hprc.vcf
 #+END_SRC
@@ -154,6 +178,8 @@ to ~vg call~. This is useful when working with many samples.
 
 ** Check the number of non-reference variants found
 Then, we can quickly summarize the findings with:
+
+*Command 9*
 #+BEGIN_SRC sh :exports code
   bcftools stats /data/NA12878.chr22.hprc.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
 #+END_SRC
@@ -187,6 +213,7 @@ and 44 bp on GRCh38 will be projected to GRCh38 as ~23M64I44M~. Note that there
 is nothing special about GRCh38, we may project onto any genome in the graph
 (specified with ~-p~). Project with the following command:
 
+*Command 10*
 #+BEGIN_SRC sh :exports code
   vg surject -p GRCh38.chr22 -t 2 -b -x /data/hprc-chrom22.giraffe.gbz /data/NA12878.chr22.sample.gam | samtools sort > NA12878.chr22.hprc.sample.bam
 #+END_SRC
@@ -203,6 +230,8 @@ Key parameters:
 
 If you check a record in the BAM file, you will see
 the path named GRCh38.chr22 in the chromosome field:
+
+*Command 11*
 #+BEGIN_SRC sh :exports code
   samtools view NA12878.chr22.hprc.sample.bam | head -n1
 #+END_SRC
@@ -210,17 +239,21 @@ the path named GRCh38.chr22 in the chromosome field:
 This file can be accepted by tools such as ~DeepVariant~ or ~bcftools~. Let's
 call SNVs and indels with ~bcftools~ on HPRC-corrected alignments:
 
+*Command 12*
 #+BEGIN_SRC sh :exports code
   bcftools mpileup -Ou -f /data/GRCh38.chr22.fa /data/NA12878.chr22.hprc.sample.bam | bcftools call -mv -Ov -o NA12878.chr22.bcftools.vcf
 #+END_SRC
 
 Let's summarize the new results just like before:
+
+*Command 13*
 #+BEGIN_SRC sh :exports code
 bcftools stats /data/NA12878.chr22.bcftools.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
 #+END_SRC
 
 Now compare with variants called with ~bwa mem~:
 
+*Command 14*
 #+BEGIN_SRC sh :exports code
 bcftools stats /data/NA12878.chr22.bwamem.vcf | awk -v FS='\t' '$1 == "SN" {print $3,$4}'
 #+END_SRC
@@ -244,6 +277,8 @@ likely to be affected by reference bias.
 ** BONUS
 The VCF files produced by ~vg~ call also indicate which nodes represent the
 variant.
+
+*Command 15*
 #+BEGIN_SRC sh :exports code
 bcftools view -H /data/NA12878.chr22.hprc.vcf | less
 #+END_SRC
