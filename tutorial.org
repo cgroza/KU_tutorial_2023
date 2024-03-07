@@ -16,6 +16,9 @@ you to run the command very fast and understand the tool parameters and output.
 Later steps then use prepared intermediate files that reside in ~/data/~ to
 provide the full results.
 
+** Data availability
+You may download the data at https://doi.org/10.5281/zenodo.10794014.
+
 * The Human Pangenome Reference (HPRC)
 The Human Pangenome Reference Consortium released the first draft human
 pangenome reference built from 94 genetically diverse assemblies. This reference
